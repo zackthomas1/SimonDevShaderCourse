@@ -28,7 +28,7 @@ class Application{
         const vertexFile = await fetch('./shaders/vertex-shader.glsl'); 
         const fragmentFile = await fetch('./shaders/fragment-shader.glsl'); 
 
-        let material = new THREE.ShaderMaterial({
+        const material = new THREE.ShaderMaterial({
             uniforms: { 
                         color1: {value: new THREE.Vector4(1.0, 1.0, 0.0, 1.0)}, 
                         color2: {value: new THREE.Vector4(0.0, 1.0, 1.0, 1.0)}
@@ -36,8 +36,17 @@ class Application{
             vertexShader: await vertexFile.text(), 
             fragmentShader: await fragmentFile.text(),
         }); 
+
+        const colors = [
+            new THREE.Color(1.0,0.0,0.0), 
+            new THREE.Color(0.0,1.0,0.0), 
+            new THREE.Color(0.0,0.0,1.0),
+            new THREE.Color(0.0,1.0,1.0)
+        ];
+        const colorFloats = colors.map(c => c.toArray()).flat();
         
         const geometry = new THREE.PlaneGeometry(1, 1); 
+        geometry.setAttribute('a_Color', new THREE.Float32BufferAttribute(colorFloats, 3));
 
         const plane = new THREE.Mesh(geometry, material); 
         plane.position.set(0.5, 0.5, 0);

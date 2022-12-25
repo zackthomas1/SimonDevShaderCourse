@@ -29,12 +29,8 @@ class SimonDevGLSLCourse {
     const vsh = await fetch('./shaders/vertex-shader.glsl');
     const fsh = await fetch('./shaders/fragment-shader.glsl');
 
-    const loader = new THREE.TextureLoader(); 
-    const plantTexture = loader.load('./textures/plants.jpg');
-
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        texture01 : {value: plantTexture},
         resolution: { value: new THREE.Vector2(
             window.innerWidth, window.innerHeight
         )}

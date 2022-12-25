@@ -1,6 +1,7 @@
 
 varying vec2 vUvs;
 
+uniform sampler2D texture01;
 uniform vec2 resolution;
 
 vec3 red = vec3(1.0, 0.0, 0.0);
@@ -40,6 +41,22 @@ void main() {
   colour = mix(white, colour, linearLine);
   colour = mix(white, colour, smoothstepLine);
 
+  vec4 textureSmoothStepUVsSample = texture2D(texture01, smoothstep(0.0,1.0,vUvs));  
+  vec3 textureSmoothStepUVsColour = vec3(textureSmoothStepUVsSample); 
 
-  gl_FragColor = vec4(colour, 1.0);
+  vec4 textureSample = texture2D(texture01, vUvs); 
+  vec3 textureSampleColour = vec3(textureSample);
+
+  // Changing the edge values appears to have the effect of chaning the white and black points of the image
+  float edge0 = 0.0, edge1 = 1.0;
+  vec3 textureSmoothStepRGBColour = vec3( smoothstep(edge0, edge1, textureSample.r), 
+                                          smoothstep(edge0, edge1, textureSample.g), 
+                                          smoothstep(edge0, edge1, textureSample.b));
+
+  float stepValue = 0.35;
+  vec3 textureStepRGBColour = vec3( step(stepValue, textureSample.r),
+                                    step(stepValue, textureSample.g),
+                                step(stepValue, textureSample.b));
+
+  gl_FragColor = vec4(textureSmoothStepRGBColour, 1.0);
 }

@@ -22,6 +22,10 @@ float clampImpl(float x, float minvalue, float maxvalue)
   return result;
 }
 
+float saturation(float a){
+  return clamp(a, 0.0, 1.0);
+}
+
 void main() {
   vec3 colour = vec3(0.0);
 
@@ -29,6 +33,7 @@ void main() {
 
   float value01 = vUvs.x;
   float value02 = clamp(vUvs.x, 0.25, 0.75);
+  // float value02 = saturation(vUvs.x);
 
   float smoothstepLine = smoothstep(0.0,0.005,abs(vUvs.y - mix(0.5,1.0,smoothstep(0.0,1.0, value01))));
   float linearLine = smoothstep(0.0, 0.005, abs(vUvs.y - mix(0.0, 0.5, value02)));

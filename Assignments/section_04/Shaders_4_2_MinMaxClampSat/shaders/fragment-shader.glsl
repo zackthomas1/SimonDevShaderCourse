@@ -9,15 +9,18 @@ vec3 white = vec3(1.0, 1.0, 1.0);
 vec3 black = vec3(0.0, 0.0, 0.0);
 vec3 yellow = vec3(1.0, 1.0, 0.0);
 
-float clampImpl(float x, float minvalue, float maxvalue)
-{ 
-  float result  = x;
- 
-  // result = result < minvalue? minvalue : result;
+// Homework section2 - Implement clamp using min/max 
+float clampMinMax(float x, float minvalue, float maxvalue)
+{  
+  // Alternative implementation using tertiary conditional statements instead of glsl min/max functions
+  // float result = result < minvalue? minvalue : result;
   // result = result > maxvalue? maxvalue : result;
  
-  result = max(minvalue, result); 
-  result = min(maxvalue, result);
+  float result = min(x, maxvalue);
+  result = max(result, minvalue); 
+
+  // Given Soloution 
+  // result = max(min(x,maxvalue), minvalue);
 
   return result;
 }
@@ -48,7 +51,6 @@ void main() {
   colour = mix(white, colour, smoothstepLine);
   colour = mix(white, colour, linearLine);
 
-
-
+  // Final output
   gl_FragColor = vec4(colour, 1.0);
 }

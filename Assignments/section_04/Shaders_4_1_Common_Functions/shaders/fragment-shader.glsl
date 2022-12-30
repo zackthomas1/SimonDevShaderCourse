@@ -19,6 +19,7 @@ void main() {
   // colour = vec3(mix(red,blue,vUvs.x));
   // colour = mix(red, blue, smoothstep(0.0, 1.0, vUvs.x));
 
+  // Homework Section 1 - Change shader to have 3 sections(step, mix, and smoothstep)
   float line1 = smoothstep(0.0, 0.005, abs(vUvs.y - 0.33));
   float line2 = smoothstep(0.0, 0.005, abs(vUvs.y - 0.66));
 
@@ -41,6 +42,8 @@ void main() {
   colour = mix(white, colour, linearLine);
   colour = mix(white, colour, smoothstepLine);
 
+
+  // Homework Section 1 - Run a texture through smoothstep
   vec4 textureSmoothStepUVsSample = texture2D(texture01, smoothstep(0.0,1.0,vUvs));  
   vec3 textureSmoothStepUVsColour = vec3(textureSmoothStepUVsSample); 
 
@@ -58,5 +61,6 @@ void main() {
                                     step(stepValue, textureSample.g),
                                 step(stepValue, textureSample.b));
 
-  gl_FragColor = vec4(textureSmoothStepRGBColour, 1.0);
+  // final output
+  gl_FragColor = vec4(colour, 1.0);
 }

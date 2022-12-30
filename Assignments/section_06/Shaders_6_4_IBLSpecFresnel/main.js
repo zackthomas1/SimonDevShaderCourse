@@ -27,12 +27,12 @@ class SimonDevGLSLCourse {
 
     const loader = new THREE.CubeTextureLoader();
     const texture = loader.load([
-        './resources/Cold_Sunset__Cam_2_Left+X.png',
-        './resources/Cold_Sunset__Cam_3_Right-X.png',
-        './resources/Cold_Sunset__Cam_4_Up+Y.png',
-        './resources/Cold_Sunset__Cam_5_Down-Y.png',
-        './resources/Cold_Sunset__Cam_0_Front+Z.png',
-        './resources/Cold_Sunset__Cam_1_Back-Z.png',
+        '../resources/Cold_Sunset__Cam_2_Left+X.png',
+        '../resources/Cold_Sunset__Cam_3_Right-X.png',
+        '../resources/Cold_Sunset__Cam_4_Up+Y.png',
+        '../resources/Cold_Sunset__Cam_5_Down-Y.png',
+        '../resources/Cold_Sunset__Cam_0_Front+Z.png',
+        '../resources/Cold_Sunset__Cam_1_Back-Z.png',
     ]);
 
     this.scene_.background = texture;
@@ -56,7 +56,7 @@ class SimonDevGLSLCourse {
     });
 
     const loader = new GLTFLoader();
-    loader.setPath('./resources/');
+    loader.setPath('../resources/');
     loader.load('suzanne.glb', (gltf) => {
       gltf.scene.traverse(c => {
         c.material = material;

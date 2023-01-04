@@ -1,3 +1,4 @@
+#define M_PI 3.14159
 
 varying vec2 vUvs;
 uniform vec2 resolution;
@@ -35,23 +36,23 @@ vec3 drawBackground(float dayTime){
   vec3 evening = mix(
         vec3(0.82,0.51,0.25),
         vec3(0.36,0.46,0.82),
-        smoothstep(0.0,1.0,pow((1.0 - vUvs.x) * vUvs.y,0.35))
+        smoothstep(0.0,1.0,pow((1.0 - vUvs.x) * vUvs.y,0.8))
     ); 
 
   vec3 night = mix(
         vec3(0.07,0.1,0.1),
         vec3(0.34,0.5,0.74),
-        smoothstep(0.0,1.0,pow(vUvs.x * vUvs.y,1.1))
+        smoothstep(0.0,1.0,pow((1.0 - vUvs.x) * vUvs.y,1.1))
     ); 
 
   if(dayTime < 0.25){
     return mix(morning,midday,smoothstep(0.0, 0.25, dayTime));
   }else if(dayTime < 0.5){
     return mix(midday, evening, smoothstep(0.25, 0.50, dayTime));
-  }else if(dayTime < 0.75){
-    return mix(evening, night, smoothstep(0.50, 0.75, dayTime));
+  }else if(dayTime < 0.8){
+    return mix(evening, night, smoothstep(0.50, 0.80, dayTime));
   }else{
-    return mix(night, morning,smoothstep(0.75, 1.0, dayTime));
+    return mix(night, morning,smoothstep(0.8, 1.0, dayTime));
   }
 }
 
@@ -145,12 +146,16 @@ float sdfCloud(vec2 pixelCoord){
   float puff2 = sdfCircle(pixelCoord - vec2(100.0, -10.0), 75.0); 
   float puff3 = sdfCircle(pixelCoord + vec2(100.0, 10.0), 75.0); 
 
-  return opUnion(opUnion(puff1, puff2), puff3);
+  return softMin(softMin(puff1, puff2, 0.15), puff3, 0.15);
 }
 
 float hash(vec2 seed){
   float t = dot(seed, vec2(36.3214, 73.4561)); 
   return sin(t * 160.0);
+}
+
+float saturate(float t){
+  return clamp(0.0,1.0,t);
 }
 
 void main() {
@@ -162,28 +167,43 @@ void main() {
   // draw background
   vec3 colour = drawBackground(dayTime);
 
+  // sun
   if(dayTime < 0.75){
-    vec2 sunMorningOffset = vec2(-(resolution.x * 0.5) - 250.0,-200.0);
-    vec2 sunMiddayOffset = vec2(0.0,400.0);
-    vec2 sunEveningOffset = vec2((resolution.x * 0.5) + 250.0,-200.0);
-    vec2 sunOffset = mix(sunMorningOffset, sunMiddayOffset, smoothstep(0.0,0.75 / 2.0,dayTime));
-    sunOffset = mix(sunOffset, sunEveningOffset, smoothstep(0.75 / 2.0, 0.75, dayTime));
+    vec2 sunMorningOffset = vec2(-(resolution.x * 0.5) - 250.0, -(resolution.y*0.25));
+    vec2 sunMiddayOffset = vec2(0.0, resolution.y*0.35);
+    vec2 sunEveningOffset = vec2((resolution.x * 0.5) + 250.0, -(resolution.y*0.25));
+    vec2 sunOffset = mix(sunMorningOffset, sunMiddayOffset, smoothstep(-0.1, 0.70/2.0,dayTime));
+    sunOffset = mix(sunOffset, sunEveningOffset, smoothstep(0.70/2.0, 0.75, dayTime));
     vec2 sunPos = pixelCoords - sunOffset;
     sunPos = sunPos - resolution * 0.5; 
 
     float sun = sdfCircle(sunPos, 100.00);
-    colour = mix(vec3(0.95,0.90,0.7), colour, smoothstep(-100.0,100.0,sun));
-    colour = mix(vec3(0.95,0.80,0.6), colour, smoothstep(0.0,4.0,sun));
+    colour = mix(vec3(0.85,0.60,0.5), colour, smoothstep(-15.0,15.0,sun));
+
+    float s = max(0.001, sun);
+    float p = saturate(exp(-0.001 * s *s));
+    colour += 0.5 * mix(vec3(0.0), vec3(0.95,0.65,0.47), p);
   }
 
-  // if(dayTime > 0.75){
-    vec2 moonOffset = vec2(0.0);
-    vec2 moonPos = pixelCoords - moonOffset; 
-    moonPos = moonPos - resolution * 0.5;
-    float moonCutOut = sdfCircle(moonPos - vec2(40.0,0.0), 90.0);
+  // moon
+  // if(dayTime > 0.6){
+    vec2 moonStart = vec2(-resolution.x * 0.55, resolution.y * 0.55);
+    vec2 moonEnd = vec2(resolution.x * 0.42, resolution.y * 0.3);
+    vec2 moonOffset = mix(moonStart, moonEnd, smoothstep(0.6,0.8, dayTime));
+    moonOffset = mix(moonOffset, moonStart, smoothstep(0.8,1.0, dayTime));
+   
+    vec2 moonPos = pixelCoords - moonOffset;  
+    moonPos = rotate2D(M_PI * -0.2) * moonPos;
+    // moonPos = moonPos + (resolution * 0.5);
+
+    float moonCutOut = sdfCircle(moonPos + vec2(40.0,0.0), 80.0);
     float moon = sdfCircle(moonPos, 100.0);
     moon = opSubtraction(moonCutOut, moon);
     colour = mix(white,colour,smoothstep(0.0,4.0,moon));
+
+    float s = max(0.001, moon);
+    float p = saturate(exp(-0.001 * s * s));
+    colour += 0.5 * mix(vec3(0.0), vec3(0.85,0.75,0.6), p);
   // }
 
   const float NUM_CLOUDS = 8.0;
@@ -191,7 +211,7 @@ void main() {
     // set cloud transform
     float size = mix(2.0, 1.0, (i / NUM_CLOUDS)) + 0.5 * hash(vec2(i));
     float speed = size * 0.25;
-    vec2 offset = vec2(200.0 * i, 400.0 * hash(vec2(i))) + (vec2(100.0,0.0) * time * speed);
+    vec2 offset = vec2((resolution.x * 0.2) * i, (resolution.x * 0.14) * hash(vec2(i))) + (vec2(100.0,0.0) * time * speed);
     vec2 pos = pixelCoords - offset;
     pos = mod(pos, resolution);
     pos = pos - resolution * 0.5;

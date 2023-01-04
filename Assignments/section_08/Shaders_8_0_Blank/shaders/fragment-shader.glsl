@@ -16,7 +16,7 @@ float remap(float v, float inMin, float inMax, float outMin, float outMax) {
 void main() {
   vec2 pixelCoords = (vUvs - 0.5) * resolution;
   
-  vec3 colour = vec3(0.0);
+  vec3 colour = vec3(1.0);
 
   gl_FragColor = vec4(colour, 1.0);
 }

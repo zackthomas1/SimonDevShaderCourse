@@ -1,5 +1,8 @@
 varying vec3 vNormal;
 varying vec3 vPosition;
+varying vec2 vUVs;
+
+uniform sampler2D diffuseTexture;
 
 float inverseLerp(float v, float minValue, float maxValue) {
   return (v - minValue) / (maxValue - minValue);
@@ -18,7 +21,8 @@ vec3 linearTosRGB(vec3 colour){
 }
 
 void main() {
-  vec3 baseColour = vec3(0.5); 
+  // vec3 baseColour = vec3(0.5); 
+  vec3 baseColour = texture2D(diffuseTexture, vUVs).xyz;
   vec3 normal = normalize(vNormal);
   vec3 viewDir = normalize(cameraPosition - vPosition);
   

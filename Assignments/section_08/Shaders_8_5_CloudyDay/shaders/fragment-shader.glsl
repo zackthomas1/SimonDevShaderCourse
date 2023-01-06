@@ -149,13 +149,72 @@ float sdfCloud(vec2 pixelCoord){
   return softMin(softMin(puff1, puff2, 0.15), puff3, 0.15);
 }
 
+float sdfMoon(vec2 pixelCoord){
+  float moonCutOut = sdfCircle(pixelCoord + vec2(50.0,0.0), 80.0);
+  float moon = sdfCircle(pixelCoord, 80.0);
+  moon = opSubtraction(moonCutOut, moon);
+
+  return moon;
+}
+
+float sdfStar5(vec2 p, float r, float rf)
+{
+    const vec2 k1 = vec2(0.809016994375, -0.587785252292);
+    const vec2 k2 = vec2(-k1.x,k1.y);
+    p.x = abs(p.x);
+    p -= 2.0*max(dot(k1,p),0.0)*k1;
+    p -= 2.0*max(dot(k2,p),0.0)*k2;
+    p.x = abs(p.x);
+    p.y -= r;
+    vec2 ba = rf*vec2(-k1.y,k1.x) - vec2(0,1);
+    float h = clamp( dot(p,ba)/dot(ba,ba), 0.0, r );
+    return length(p-ba*h) * sign(p.y*ba.x-p.x*ba.y);
+}
+
 float hash(vec2 seed){
   float t = dot(seed, vec2(36.3214, 73.4561)); 
   return sin(t * 160.0);
 }
 
 float saturate(float t){
-  return clamp(0.0,1.0,t);
+  return clamp(t,0.0,1.0);
+}
+
+float easeOutBounce(float t){
+  float n1 = 7.5625; 
+  float d1 = 2.75; 
+
+  if(t < 1.0 / d1){
+    return n1 * t * t; 
+  }else if(t < 2.0 / d1){
+    t -= 1.5 / d1;
+    return n1 * t * t + 0.75;
+  }else if(t < 2.5 / d1){
+    t -= 2.25 / d1;
+    return n1 * t * t + 0.9375;
+  }else{
+    t -= 2.625 / d1;
+    return n1 * t * t + 0.984375;
+  }
+}
+
+float easeInSine(float t){
+  return 1.0 - cos((t * M_PI) / 2.0);
+}
+float easeOutSine(float t){
+  return sin((t * M_PI) / 2.0);
+}
+
+float easeInOutSine(float t){
+  return -(cos(M_PI * t) - 1.0) / 2.0;
+}
+
+float easeInQuart(float t){
+  return pow(t, 4.0);
+}
+
+float easeOutQuart(float t){
+  return 1.0 - pow(1.0 - t, 4.0);
 }
 
 void main() {
@@ -170,7 +229,7 @@ void main() {
   // sun
   if(dayTime < 0.75){
     vec2 sunMorningOffset = vec2(-(resolution.x * 0.5) - 250.0, -(resolution.y*0.25));
-    vec2 sunMiddayOffset = vec2(0.0, resolution.y*0.35);
+    vec2 sunMiddayOffset = vec2(0.0, resolution.y*0.25);
     vec2 sunEveningOffset = vec2((resolution.x * 0.5) + 250.0, -(resolution.y*0.25));
     vec2 sunOffset = mix(sunMorningOffset, sunMiddayOffset, smoothstep(-0.1, 0.70/2.0,dayTime));
     sunOffset = mix(sunOffset, sunEveningOffset, smoothstep(0.70/2.0, 0.75, dayTime));
@@ -186,41 +245,85 @@ void main() {
   }
 
   // moon
-  // if(dayTime > 0.6){
-    vec2 moonStart = vec2(-resolution.x * 0.55, resolution.y * 0.55);
-    vec2 moonEnd = vec2(resolution.x * 0.42, resolution.y * 0.3);
-    vec2 moonOffset = mix(moonStart, moonEnd, smoothstep(0.6,0.8, dayTime));
-    moonOffset = mix(moonOffset, moonStart, smoothstep(0.8,1.0, dayTime));
+  if(dayTime > 0.35){
+    vec2 moonEveningPos = vec2(-(resolution.x * 0.5) - 250.0, -(resolution.y*0.25));
+    vec2 moonMidnightPos = vec2(0.0, resolution.y*0.25);
+    vec2 moonMorningPos = vec2((resolution.x * 0.5) + 250.0, -(resolution.y*0.25));
+    vec2 moonOffset = mix(moonEveningPos, moonMidnightPos, smoothstep(0.4,0.8, dayTime));
+    moonOffset = mix(moonOffset, moonMorningPos, smoothstep(0.8,1.1, dayTime));
    
-    vec2 moonPos = pixelCoords - moonOffset;  
+    vec2 moonPos = pixelCoords - (resolution * 0.5);  
+    moonPos = moonPos - moonOffset;
     moonPos = rotate2D(M_PI * -0.2) * moonPos;
-    // moonPos = moonPos + (resolution * 0.5);
 
-    float moonCutOut = sdfCircle(moonPos + vec2(40.0,0.0), 80.0);
-    float moon = sdfCircle(moonPos, 100.0);
-    moon = opSubtraction(moonCutOut, moon);
-    colour = mix(white,colour,smoothstep(0.0,4.0,moon));
+    float moonShadow = sdfMoon(moonPos - vec2(15.0,-10.0));
+    colour = mix(black,colour,smoothstep(-30.0,10.0,moonShadow));
+    
+    float moon = sdfMoon(moonPos);
+    colour = mix(white,colour,smoothstep(-2.0,4.0,moon));
 
-    float s = max(0.001, moon);
-    float p = saturate(exp(-0.001 * s * s));
-    colour += 0.5 * mix(vec3(0.0), vec3(0.85,0.75,0.6), p);
-  // }
+    float moonGlow = sdfMoon(moonPos);
+    colour += 0.4 * mix(vec3(1.0), vec3(0.0), smoothstep(-5.0, 15.0, moonGlow));
+  }
 
+  // stars 
+  const float NUM_STARS = 16.0; 
+  for(float i = 0.0; i < NUM_STARS; i += 1.0){
+    float hashSample = hash(vec2(i * 124.15)) * 0.5 + 0.5;
+    float t = saturate(inverseLerp(mod(time, dayLength), dayLength * 0.65, dayLength * 0.65 + 1.35));
+
+    float size = mix(2.5,0.5,hashSample);
+    vec2 starOffset = vec2(i*100.0, 0.0) + 150.0 * hash(vec2(i));
+    starOffset += mix(vec2(0.0,resolution.y * 0.7),vec2(0.0,300.0), easeOutBounce(t));
+
+    vec2 starPos = pixelCoords - starOffset;
+    starPos.x = mod(starPos.x, resolution.x);
+    starPos = starPos - (resolution * 0.5);
+    starPos = rotate2D(M_PI * 0.5 * hashSample) * starPos;
+    starPos *= size;
+
+    float star = sdfStar5(starPos, 10.0, 2.0);
+    vec3 starColour = mix(vec3(0.70,0.75,0.9),black,smoothstep(0.0,1.0,star));
+    starColour += 0.4 * mix(vec3(1.0), vec3(0.0), smoothstep(-5.0, 5.0, star));
+    
+    t = saturate(inverseLerp(mod(time, dayLength), dayLength * 0.9, dayLength * 0.9 + 2.0));
+    colour += starColour * (1.0 - t);
+    // colour += starColour;
+  }
+
+  // clouds 
   const float NUM_CLOUDS = 8.0;
   for(float i = 0.0; i < NUM_CLOUDS; i += 1.0){
     // set cloud transform
     float size = mix(2.0, 1.0, (i / NUM_CLOUDS)) + 0.5 * hash(vec2(i));
     float speed = size * 0.25;
-    vec2 offset = vec2((resolution.x * 0.2) * i, (resolution.x * 0.14) * hash(vec2(i))) + (vec2(100.0,0.0) * time * speed);
+    vec2 offset = vec2((200.0) * i, (250.0));
+    offset = offset * hash(vec2(i)) + (vec2(100.0,0.0) * time * speed);
+    
     vec2 pos = pixelCoords - offset;
     pos = mod(pos, resolution);
     pos = pos - resolution * 0.5;
     
     // draw clouds 
     float cloudShadow = sdfCloud(pos * size + vec2(25.0)) - 40.0;
-    float cloud = sdfCloud(pos * size);
     colour = mix(colour, black, 0.5 * smoothstep(0.0,-100.0,cloudShadow));
-    colour = mix(white, colour, smoothstep(0.0,6.0,cloud));
+    
+    float cloud = sdfCloud(pos * size);
+    vec3 cloudColour = vec3(1.0);
+    cloudColour = mix(vec3(0.60,0.65,0.8),
+                      mix(vec3(0.85,0.90,0.94), 
+                          mix(vec3(1.0, 1.0, 1.0),
+                              mix(vec3(0.82,0.71,0.65),
+                                  vec3(0.60,0.65,0.8),
+                                  smoothstep(0.75, 1.0, easeOutSine(dayTime))
+                                  ),
+                              smoothstep(0.5, 0.75, easeOutSine(dayTime))
+                            ),
+                            smoothstep(0.25, 0.5, easeOutSine(dayTime))
+                        ),
+                      smoothstep(0.0, 0.25, easeOutSine(dayTime))
+                  );
+    colour = mix(cloudColour, colour, smoothstep(0.0,6.0,cloud));
   }
 
   gl_FragColor = vec4(colour, 1.0);

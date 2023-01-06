@@ -1,3 +1,5 @@
+#define M_PI 3.14159
+#define M_2PI 6.28318
 
 varying vec2 vUvs;
 uniform vec2 resolution;
@@ -79,7 +81,7 @@ mat2 rotate2D(float theta){
 
 
 void main() {
-  vec2 pixelCoords = (vUvs - 0.5) * resolution;
+  vec2 pixelCoords = vUvs * resolution;
   float d;
 
   // draw background and grid
@@ -104,7 +106,12 @@ void main() {
   // colour = mix(green,colour, step(0.0, sdfBox(pos, box)));
 
   // hexagon 
-  d = sdfHexagon(pixelCoords, 500.0);
+  vec2 hexPos = pixelCoords - resolution * 0.5;
+  hexPos = hexPos - vec2(500.0, 0.0);
+  hexPos = rotate2D(M_2PI * sin(time)) * hexPos;
+  // hexPos = hexPos - resolution * 0.5;
+
+  d = sdfHexagon(hexPos, 500.0);
   colour = mix(red * 0.5, colour, smoothstep(-1.0, 1.0, d));
   colour = mix(red, colour, smoothstep(-25.0, -20.0, d));
   

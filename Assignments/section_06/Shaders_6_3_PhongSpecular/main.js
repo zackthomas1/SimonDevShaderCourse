@@ -44,28 +44,43 @@ class SimonDevGLSLCourse {
   }
 
   async setupProject_() {
-    const vsh = await fetch('./shaders/vertex-shader.glsl');
-    const fsh = await fetch('./shaders/fragment-shader.glsl');
+    const vsh = await (await fetch('./shaders/vertex-shader.glsl')).text();
+    const fsh = await (await fetch('./shaders/fragment-shader.glsl')).text();
 
-    const material = new THREE.ShaderMaterial({
+    // create suzanne material
+    const checkerBoardTexture = new THREE.TextureLoader().load('../resources/uvCheckerBoard.jpg');
+    const suzanneMaterial = new THREE.ShaderMaterial({
       uniforms: {
+        diffuseTexture : {value : checkerBoardTexture}
       },
-      vertexShader: await vsh.text(),
-      fragmentShader: await fsh.text()
+      vertexShader: vsh,
+      fragmentShader: fsh
     });
 
+    // load suzanne mesh and add to scene
     const loader = new GLTFLoader();
     loader.setPath('../resources/');
     loader.load('suzanne.glb', (gltf) => {
       gltf.scene.traverse(c => {
-        c.material = material;
+        c.material = suzanneMaterial;
         c.position.set(1,0,0);
       });
       this.scene_.add(gltf.scene);
     });
-  
+
+    // create sphere material
+    const brickTexture = new THREE.TextureLoader().load('../resources/brickTexture.jpg');
+    const sphereMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        diffuseTexture : {value : brickTexture}
+      },
+      vertexShader: vsh,
+      fragmentShader: fsh
+    });
+
+    // create sphere mesh and add to scene
     const sphereGeometry = new THREE.SphereGeometry(1,128,128); 
-    const sphere = new THREE.Mesh(sphereGeometry, material);
+    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.position.set(-1,0,0);
     this.scene_.add(sphere);
   }
@@ -84,7 +99,6 @@ class SimonDevGLSLCourse {
     });
   }
 }
-
 
 let APP_ = null;
 

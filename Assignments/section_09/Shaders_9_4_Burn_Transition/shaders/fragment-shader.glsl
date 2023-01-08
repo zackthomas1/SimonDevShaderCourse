@@ -2,6 +2,8 @@
 varying vec2 vUvs;
 uniform vec2 resolution;
 uniform float time;
+uniform sampler2D dogTexture; 
+uniform sampler2D plantsTexture;
 
 float inverseLerp(float v, float minValue, float maxValue) {
   return (v - minValue) / (maxValue - minValue);
@@ -65,13 +67,21 @@ float fbm(vec3 p, int octaves, float persistence, float lacunarity) {
   return total;
 }
 
+float sdfCircle(vec2 pixelCoords, float radius){
+  return length(pixelCoords) - radius;
+}
+
 void main() {
   vec2 pixelCoords = (vUvs - 0.5) * resolution;
   vec3 colour = vec3(0.0);
 
+  vec4 dogSample = texture2D(dogTexture, vUvs);
+  vec4 plantSample = texture2D(plantsTexture, vUvs - vec2(0.18,0.0));
+
+  float circleSDF = sdfCircle(pixelCoords, 256.0);
+  float alphaChannel = smoothstep(0.0,1.0,circleSDF);
+
+  colour = mix(plantSample, dogSample, alphaChannel).xyz;
+
   gl_FragColor = vec4(colour, 1.0);
 }
-
-
-
-

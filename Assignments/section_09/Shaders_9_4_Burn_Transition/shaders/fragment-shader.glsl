@@ -5,6 +5,11 @@ uniform float time;
 uniform sampler2D dogTexture; 
 uniform sampler2D plantsTexture;
 
+vec3 BLACK_COLOUR = vec3(0.0);
+vec3 ORANGE_COLOUR = vec3(0.77f, 0.38f, 0.07f);
+vec3 REDORANGE_COLOUR = vec3(0.91f, 0.27f, 0.07f);
+vec3 YELLOWORANGE_COLOUR = vec3(0.85f, 0.65f, 0.1f);
+
 float inverseLerp(float v, float minValue, float maxValue) {
   return (v - minValue) / (maxValue - minValue);
 }
@@ -75,13 +80,38 @@ void main() {
   vec2 pixelCoords = (vUvs - 0.5) * resolution;
   vec3 colour = vec3(0.0);
 
-  vec4 dogSample = texture2D(dogTexture, vUvs);
-  vec4 plantSample = texture2D(plantsTexture, vUvs - vec2(0.18,0.0));
+  float noiseSample = fbm(vec3(pixelCoords, 0.0) * 0.005, 4,0.5,2.0);
+  noiseSample += fbm(vec3(pixelCoords, 0.0) * 0.05, 4,0.5,2.0) * 0.5;
+  noiseSample += fbm(vec3(pixelCoords, 0.0) * 0.125, 4,0.5,2.0) * 0.25;
 
-  float circleSDF = sdfCircle(pixelCoords, 256.0);
-  float alphaChannel = smoothstep(0.0,1.0,circleSDF);
+  float radius = smoothstep(0.00, 15.0, time) * (70.0 + length(resolution) * 0.5);
+  float circleSDF = sdfCircle(pixelCoords + 50.0 * noiseSample, radius);
+  float circleAlpha = 1.0 - smoothstep(0.0,1.0,circleSDF);
 
-  colour = mix(plantSample, dogSample, alphaChannel).xyz;
+  vec2 distortion = noiseSample / resolution;
+  vec2 uvDistortion = 20.0 * distortion * smoothstep(80.0,20.0, circleSDF);
+
+  vec3 dogSample = texture2D(dogTexture, vUvs + uvDistortion).xyz;
+  vec3 plantSample = texture2D(plantsTexture, vUvs).xyz;
+  colour = dogSample;
+
+  float burnAlpha = exp(-circleSDF * circleSDF * 0.0005);
+  colour = mix(colour, BLACK_COLOUR, burnAlpha);
+
+  float fireAlpha = 1.0 - smoothstep(0.0,10.0,(circleSDF ) * 0.5 * pow(noiseSample,2.25));
+  fireAlpha = pow(fireAlpha, 2.0);
+  colour = mix(colour, ORANGE_COLOUR, fireAlpha);
+
+
+  colour = mix(colour, plantSample,  circleAlpha);
+
+  vec3 glow_colour = mix(REDORANGE_COLOUR, YELLOWORANGE_COLOUR, noiseSample);
+  float glowAmount = smoothstep(0.0, 32.0, abs(circleSDF));
+  glowAmount = 1.0 - pow(glowAmount, 0.125); 
+  colour += glowAmount * glow_colour;
+
+
+  // colour = glow_colour;
 
   gl_FragColor = vec4(colour, 1.0);
 }

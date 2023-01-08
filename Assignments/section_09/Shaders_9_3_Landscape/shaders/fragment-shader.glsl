@@ -96,7 +96,7 @@ vec3 DrawMoutains(vec3 background, vec3 colour, vec2 pixelCoords, float depth){
     vec3 mountainColour = mix(colour, fogColour, fogFactor);
     
     float blurr = 1.0 + (smoothstep(0.0,6400.0,depth) * 96.0) + (smoothstep(200.0,-1400.0, depth) * 32.0);
-    vec2 depthOffset = vec2((1.0 - smoothstep(0.0,8000.0,depth)) * 2048.0,0.0);
+    vec2 depthOffset = vec2((smoothstep(0.0,8000.0,depth)) * 2048.0,0.0);
     return mix(mountainColour, background, smoothstep(0.0,blurr,sdfMontains(pixelCoords + depthOffset)));
 
 }
@@ -128,7 +128,3 @@ void main() {
 
   gl_FragColor = vec4(colour, 1.0);
 }
-
-
-
-

@@ -102,16 +102,12 @@ void main() {
   fireAlpha = pow(fireAlpha, 2.0);
   colour = mix(colour, ORANGE_COLOUR, fireAlpha);
 
-
   colour = mix(colour, plantSample,  circleAlpha);
 
   vec3 glow_colour = mix(REDORANGE_COLOUR, YELLOWORANGE_COLOUR, noiseSample);
   float glowAmount = smoothstep(0.0, 32.0, abs(circleSDF));
   glowAmount = 1.0 - pow(glowAmount, 0.125); 
   colour += glowAmount * glow_colour;
-
-
-  // colour = glow_colour;
 
   gl_FragColor = vec4(colour, 1.0);
 }
